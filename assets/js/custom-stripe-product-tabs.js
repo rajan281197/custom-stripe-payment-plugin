@@ -21,6 +21,11 @@ jQuery(document).ready(function($) {
     $('#submit-payment').on('click', function(event) {
         event.preventDefault();
 
+        if (!cardElement) {
+            console.error('Card element is not initialized.');
+            return;
+        }
+
         var selectedProductId = $('input[name="selected_product"]:checked').val();
 
         // Fetch success and cancel URLs

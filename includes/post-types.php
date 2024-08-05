@@ -79,11 +79,17 @@ function custom_stripe_payment_meta_box_callback( $post ) {
 
         <tr>
             <th><label for="stripe_success_page"><?php _e( 'Success Page URL', 'custom-stripe-payment-plugin' ); ?></label></th>
-            <td><input type="url" name="stripe_success_page" id="stripe_success_page" value="<?php echo esc_url( $success_page ); ?>" class="regular-text"></td>
+            <td>
+                <input type="url" name="stripe_success_page" id="stripe_success_page" value="<?php echo esc_url( $success_page ); ?>" class="regular-text">
+                <button type="button" class="button select-link" data-target="#stripe_success_page"><?php _e( 'Select Link', 'custom-stripe-payment-plugin' ); ?></button>
+            </td>
         </tr>
         <tr>
             <th><label for="stripe_failure_page"><?php _e( 'Failure/Return Page URL', 'custom-stripe-payment-plugin' ); ?></label></th>
-            <td><input type="url" name="stripe_failure_page" id="stripe_failure_page" value="<?php echo esc_url( $failure_page ); ?>" class="regular-text"></td>
+            <td>
+                <input type="url" name="stripe_failure_page" id="stripe_failure_page" value="<?php echo esc_url( $failure_page ); ?>" class="regular-text">
+                <button type="button" class="button select-link" data-target="#stripe_failure_page"><?php _e( 'Select Link', 'custom-stripe-payment-plugin' ); ?></button>
+            </td>
         </tr>
         <tr>
             <th><label for="stripe_products"><?php _e( 'Select Products', 'custom-stripe-payment-plugin' ); ?></label></th>
@@ -96,6 +102,9 @@ function custom_stripe_payment_meta_box_callback( $post ) {
     </table>
     <?php
 }
+
+add_action('add_meta_boxes', 'custom_stripe_payment_meta_boxes');
+
 
 // Render Stripe products based on type
 function render_stripe_products( $form_type, $selected_products ) {
@@ -213,6 +222,9 @@ function custom_stripe_payment_enqueue_scripts($hook) {
         'ajaxurl' => admin_url('admin-ajax.php'),
         'nonce'   => wp_create_nonce('custom_stripe_payment_nonce')
     ]);
+
+    
+
 }
 add_action('admin_enqueue_scripts', 'custom_stripe_payment_enqueue_scripts');
 
@@ -430,7 +442,38 @@ add_filter('manage_stripe_payment_posts_columns', 'add_shortcode_column_to_strip
 // Display shortcode in custom column
 function display_stripe_payment_shortcode($column_name, $post_id) {
     if ($column_name === 'shortcode') {
-        echo '<input type="text" readonly="readonly" value="[custom_stripe_payment post_id=' . $post_id . ']" onclick="this.select();" style="width: 100%; box-sizing: border-box; padding: 3px;">';
+        echo '<input type="text" id="shortcode_' . $post_id . '" readonly="readonly" value="[custom_stripe_payment post_id=' . $post_id . ']" onclick="copyToClipboard(this)" style="width: 100%; box-sizing: border-box; padding: 3px;">';
+        echo '<span id="copy_message_' . $post_id . '" style="display:none;color:green;">Copied!</span>';
     }
 }
 add_action('manage_stripe_payment_posts_custom_column', 'display_stripe_payment_shortcode', 10, 2);
+
+// Enqueue jQuery and custom script
+function enqueue_custom_admin_scripts() {
+
+    wp_enqueue_script('jquery');
+
+    wp_enqueue_script('custom-admin-scripts', CUSTOM_STRIPE_PAYMENT_PLUGIN_URL . 'assets/js/admin-scripts.js', array('jquery'), null, true);
+    wp_add_inline_script('jquery', '
+        function copyToClipboard(element) {
+            var $temp = jQuery("<input>");
+            jQuery("body").append($temp);
+            $temp.val(jQuery(element).val()).select();
+            document.execCommand("copy");
+            $temp.remove();
+            showCopyMessage(jQuery(element).attr("id"));
+        }
+
+        function showCopyMessage(elementId) {
+            var messageId = "copy_message_" + elementId.split("_")[1];
+            var messageElement = jQuery("#" + messageId);
+            messageElement.show();
+            setTimeout(function() {
+                messageElement.fadeOut();
+            }, 2000);
+        }
+    ');
+
+
+}
+add_action('admin_enqueue_scripts', 'enqueue_custom_admin_scripts');
